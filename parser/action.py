@@ -55,6 +55,7 @@ class Action:
 
 if __name__ == '__main__':
     print('----------Test Case 1----------')
+    
     action = Action(
         name='move_onTable',
         params=['?x', '?y'],
