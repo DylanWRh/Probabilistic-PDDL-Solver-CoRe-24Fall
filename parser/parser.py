@@ -55,17 +55,27 @@ class Parser:
                             raise ValueError(f'Requirement {req} not supported')
                     self.requirements = token_group
                 elif token_head == ':predicates':
-                    pass    ### TODO
-                elif token_head == ':precondition':
-                    pass    ### TODO
+                    self.parse_predicates(token_group)
                 elif token_head == ':action':
-                    pass    ### TODO
+                    self.parse_action(token_group)
                 else:
                     raise ValueError(f'{token_head} not supported')
             
         else:
             raise ValueError(f'File {domain_filename} does not match domain pattern')
+    
+    def parse_predicates(self, pred_group):
+        for pred in pred_group:
+            pred_head = pred.pop(0)
+            if pred_head in self.predicates:
+                raise ValueError(f'Predicate {pred_head} already defined')
+            pred_args = {arg: 'object' for arg in pred}
+            self.predicates[pred_head] = pred_args
         
+        print(self.predicates)
+    
+    def parse_action(self, action_group):
+        pass  
             
 if __name__ == '__main__':
     
@@ -87,6 +97,12 @@ if __name__ == '__main__':
     assert problem_parsed.__eq__(problem_target)
     
     print('--------------- Test 1 passed ---------------')
+    
+    print('----------- Test 2: domain parsing ----------')
+    
+    parser.parse_domain(domain_file)
+    
+    print('--------------- Test 2 passed ---------------')
     
     
     
