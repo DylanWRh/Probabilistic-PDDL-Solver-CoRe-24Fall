@@ -374,6 +374,9 @@ class BlockStackingEnv:
                 self.vector_state = self.before_state
                 return False
         return self.put_A_on_B_(obj_A, obj_B)
+    
+    def goal_reachde(self):
+        return np.array_equal(self.vector_state, self.goal_vector)
         
         
 if __name__ == '__main__':
