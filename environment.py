@@ -18,11 +18,11 @@ class BlockStackingEnv:
         Args:
             num_blocks: number of blocks in the environment
             init_coords: initial integer coordinates of the blocks, shape [N, 3]. Table plane is at z = 0.
-            init_matrix: initial image of the blocks, shape [N, N+1]
-            init_vector: initial vector representation of the blocks, shape [N, N+2]. For each block, the last two elements are the one-hot encoding of whether the block is clear and on the table, respectively. The rest of the elements are the one-hot encoding of the block on top of it.
+            init_image: initial image of the blocks, shape [N+1, N]
+            init_vector: initial vector representation of the blocks, shape [N, N+2]. For each block, the last two elements are the one-hot encoding of whether the block is clear and on the table, respectively. The rest of the elements are the one-hot encoding of the block on top of it, e.g. if A is on B, then vector[A, B] = 1.
             ..Note: At most one of init_coords, init_image, and init_vector can be provided. If none is provided, the initial state is that all blocks are on the table.
             goal_coords: goal integer coordinates of the blocks, shape [N, 3]. Table plane is at z = 0.
-            goal_image: goal image of the blocks, shape [N, N+1]
+            goal_image: goal image of the blocks, shape [N+1, N]
             goal_vector: goal vector representation of the blocks, shape [N, N+2]. For each block, the last two elements are the one-hot encoding of whether the block is clear and on the table, respectively. The rest of the elements are the one-hot encoding of the block on top of it.
             ..Note: At most one of goal_coords, goal_image, and goal_vector can be provided. If none is provided, the goal state is that all blocks are on the table.
         '''
@@ -75,7 +75,7 @@ class BlockStackingEnv:
     def set_image_state(self, image_state, is_goal=False):
         '''
         Args:
-            image_state: image representation of the blocks, shape [N, N+1]
+            image_state: image representation of the blocks, shape [N+1, N]
         '''
         if image_state is not None:
             assert image_state.shape == self.image_state.shape, \
@@ -144,7 +144,7 @@ class BlockStackingEnv:
         Args:
             coords: integer coordinates of the blocks, shape [N, 3]
         Returns:
-            image: image representation of the blocks, shape [N, N+1]
+            image: image representation of the blocks, shape [N+1, N]
         '''
         
         N = self.num_blocks
@@ -159,7 +159,7 @@ class BlockStackingEnv:
             f"Expected {N} unique coordinates, got {len(coords_unique)}."
         
         # Step 2. Create the image
-        image = np.zeros((N, N + 1), dtype=int)
+        image = np.zeros((N+1, N), dtype=int)
         num_cols = 0
         xy2col = {}
         col2height = {}
@@ -174,8 +174,7 @@ class BlockStackingEnv:
             image[height, col] = i + 1
             col2height[col] += 1
 
-        image = image[::-1]
-        return image
+        return image[::-1]
     
     def coords_to_vector(self, coords: np.ndarray) -> np.ndarray:
         '''
@@ -189,26 +188,27 @@ class BlockStackingEnv:
     def image_to_vector(self, image: np.ndarray) -> np.ndarray:
         '''
         Args:
-            image: image representation of the blocks, shape [N, N+1]
+            image: image representation of the blocks, shape [N+1, N]
         Returns:
             vector: vector representation of the blocks, shape [N, N+2]
         '''
         
         N = self.num_blocks
-        image = image[::-1].T
         vector = np.zeros((N, N+2), dtype=int)
 
+        image = image[::-1]
+        
         for i in range(N):
             for j in range(N):
                 if image[i, j] != 0:
                     cur_block = image[i, j] - 1
-                    if j == 0:
+                    if i == 0:
                         vector[cur_block, -1] = 1
-                    next_block = image[i, j+1] - 1
+                    next_block = image[i+1, j] - 1
                     if next_block == -1:
                         vector[cur_block, -2] = 1
                     else:
-                        vector[cur_block, next_block] = 1
+                        vector[next_block, cur_block] = 1
         return vector
     
     def vector_to_image(self, vector: np.ndarray) -> np.ndarray:
@@ -216,10 +216,10 @@ class BlockStackingEnv:
         Args:
             vector: vector representation of the blocks, shape [N, N+2]
         Returns:
-            image: image representation of the blocks, shape [N, N+1]
+            image: image representation of the blocks, shape [N+1, N]
         '''
         N = self.num_blocks
-        image = np.zeros((N, N+1), dtype=int)
+        image = np.zeros((N+1, N), dtype=int)
         
         num_cols = 0
         vector_graph = vector[:N, :N]
@@ -228,7 +228,7 @@ class BlockStackingEnv:
         columns = [[i] for i in range(N)]
         idx2col = {i: i for i in range(N)}
 
-        for down, up in zip(*relations):
+        for up, down in zip(*relations):
             upcols = columns[idx2col[up]]
             columns[idx2col[up]] = []
             idx2col[up] = idx2col[down]
@@ -240,10 +240,10 @@ class BlockStackingEnv:
 
         for col in columns:
             if col:
-                image[num_cols, :len(col)] = col
-                image[num_cols, :len(col)] += 1
+                image[:len(col), num_cols] = col
+                image[:len(col), num_cols] += 1
                 num_cols += 1
-        return image.T[::-1]
+        return image[::-1]
     
     def get_language_state(self, is_goal=False):       
         N = self.num_blocks
@@ -294,8 +294,8 @@ class BlockStackingEnv:
         ''' Judge whether obj_A is on obj_B
         '''
         if is_goal:
-            return self.goal_vector[obj_B - 1, obj_A - 1] == 1
-        return self.vector_state[obj_B - 1, obj_A - 1] == 1
+            return self.goal_vector[obj_A - 1, obj_B - 1] == 1
+        return self.vector_state[obj_A - 1, obj_B - 1] == 1
     
     def set_clear(self, obj, is_clear=True, is_goal=False):
         if is_goal:
@@ -316,26 +316,27 @@ class BlockStackingEnv:
         '''
         N = self.num_blocks
         if is_goal:
-            self.goal_vector[:N, obj_A - 1] = 0
-            self.goal_vector[obj_B - 1, obj_A - 1] = 1
+            self.goal_vector[obj_A - 1, :N] = 0
+            self.goal_vector[obj_A - 1, obj_B - 1] = 1
         else:
-            self.vector_state[:N, obj_A - 1] = 0
-            self.vector_state[obj_B - 1, obj_A - 1] = 1
+            self.vector_state[obj_A - 1, :N] = 0
+            self.vector_state[obj_A - 1, obj_B - 1] = 1
         self.set_vector_state(self.vector_state, is_goal)
     
-    def put_A_on_B_(self, obj_A, obj_B):   
+    def put_A_on_B_(self, obj_A, obj_B, judge_only=False):   
         ''' A should be on table and clear, B should be clear
         '''
-        if obj_A == obj_B:
+        preconds = [
+            self.is_on_table(obj_A),
+            self.is_clear(obj_A),
+            self.is_clear(obj_B),
+            not self.is_on(obj_A, obj_B),
+            not obj_A == obj_B
+        ]
+        if not all(preconds):
             return False
-        if self.is_on(obj_A, obj_B):
-            return False
-        if not self.is_on_table(obj_A):
-            return False
-        if not self.is_clear(obj_A):
-            return False
-        if not self.is_clear(obj_B):
-            return False
+        if judge_only:
+            return True
         
         N = self.num_blocks
         # B becomes not clear 
@@ -346,39 +347,94 @@ class BlockStackingEnv:
         self.set_on(obj_A, obj_B)
         return True 
 
-    def put_on_table(self, obj_A):
-        if self.is_on_table(obj_A):
+    def put_on_table(self, obj_A, judge_only=False):
+        preconds = [
+            not self.is_on_table(obj_A),
+            self.is_clear(obj_A)
+        ]
+        if not all(preconds):
             return False
-        if not self.is_clear(obj_A):
-            return False
+        if judge_only:
+            return True
         
         N = self.num_blocks
         # A becomes on table    
         self.set_on_table(obj_A)
         # A is not on any block
-        A_is_on = np.where(self.vector_state[:N, obj_A - 1] == 1)[0]
+        A_is_on = np.where(self.vector_state[obj_A - 1, :N] == 1)[0]
         for obj in A_is_on:
-            self.vector_state[obj, obj_A - 1] = 0
+            self.vector_state[obj_A - 1, obj] = 0
             self.vector_state[obj, -2] = 1
         self.set_vector_state(self.vector_state)
         return True
     
-    def put_A_on_B(self, obj_A, obj_B):
+    def put_A_on_B(self, obj_A, obj_B, judge_only=False):
         ''' A should be clear, yet not necessarily on table;
         B should be clear
         '''
-        self.before_state = self.vector_state.copy()
-        if not self.is_on_table(obj_A):
-            put_A_on_table = self.put_on_table(obj_A)
-            if not put_A_on_table:
-                self.vector_state = self.before_state
-                return False
-        return self.put_A_on_B_(obj_A, obj_B)
+        preconds = [
+            self.is_clear(obj_A),
+            self.is_clear(obj_B),
+            not self.is_on(obj_A, obj_B),
+            not obj_A == obj_B
+        ]
+        if not all(preconds):
+            return False
+        if judge_only:
+            return True
+        
+        self.put_on_table(obj_A)
+        self.put_A_on_B_(obj_A, obj_B)
+        return True
     
-    def goal_reachde(self):
-        return np.array_equal(self.vector_state, self.goal_vector)
+    def execute_action(self, action):
+        if action[0] == 'Put on table':
+            return self.put_on_table(action[1])
+        elif action[0] == 'Put on':
+            return self.put_A_on_B(action[1], action[2])
+        else:
+            assert False, f'Unknown action: {action}'
+    
+    def get_precondition(self, action):
+        # TODO: Check logits
+        precondition = np.zeros_like(self.vector_state)
+        if action[0] == 'Put on table':
+            # A shoule be not on table and clear
+            obj_A = action[1]
+            precondition[obj_A - 1, -1] = 0
+            precondition[obj_A - 1, -2] = 1
+            
+            # A should be on some block
+            precondition[obj_A - 1, :-2] = 1
+            # A shoule not be on itself
+            precondition[obj_A - 1, obj_A - 1] = 0
+            
+        elif action[0] == 'Put on':
+            obj_A, obj_B = action[1], action[2]
+            
+            # A should be clear, and on some block or on table
+            precondition[obj_A - 1, :] = 1
+            # A should not be on itself
+            precondition[obj_A - 1, obj_A - 1] = 0
+            # A should not be on B
+            precondition[obj_A - 1, obj_B - 1] = 0
+            
+            # B should be clear, and on some block or on table
+            precondition[obj_B - 1, :] = 1
+            # B should not be on itself
+            precondition[obj_B - 1, obj_B - 1] = 0
+            # B should not be on A
+            precondition[obj_B - 1, obj_A - 1] = 0
+        else:
+            assert False, f'Unknown action: {action}'
         
-        
+        return precondition
+            
+    def get_effect(self, action):
+        # TODO: Implement
+        raise NotImplementedError
+
+
 if __name__ == '__main__':
     env = BlockStackingEnv()
     
