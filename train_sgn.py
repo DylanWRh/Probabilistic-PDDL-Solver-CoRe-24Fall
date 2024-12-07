@@ -62,7 +62,7 @@ def main():
     
     n_blocks = ds_train.n_blocks
     sgn_model = BlockStackingSGN(n_blocks, args.hidden_dim, args.depth).to(device)
-    criterion = torch.nn.BCEWithLogitsLoss(reduction='mean')
+    criterion = torch.nn.MSELoss(reduction='mean')
     
     train_sgn(
         sgn_model, criterion, train_loader, val_loader, device, 

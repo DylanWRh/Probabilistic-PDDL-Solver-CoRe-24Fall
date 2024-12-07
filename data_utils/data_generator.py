@@ -9,9 +9,9 @@ from environment import BlockStackingEnv
 def gen_data(args):
     assert args.z_min >= 0
     xx, yy, zz = np.meshgrid(
-        np.arange(args.x_min, args.x_max),
-        np.arange(args.y_min, args.y_max),
-        np.arange(args.z_min, args.z_max)
+        np.arange(args.x_min, args.x_max+1),
+        np.arange(args.y_min, args.y_max+1),
+        np.arange(args.z_min, args.z_max+1)
     )
     x = xx.flatten()
     y = yy.flatten()
@@ -70,12 +70,12 @@ if __name__ == '__main__':
     parser.add_argument('--n_samples_train', type=int, default=3000)
     parser.add_argument('--n_samples_val', type=int, default=500)
     parser.add_argument('--n_samples_test', type=int, default=500)
-    parser.add_argument('--x_min', type=int, default=-4)
-    parser.add_argument('--x_max', type=int, default=4)
-    parser.add_argument('--y_min', type=int, default=-4)
-    parser.add_argument('--y_max', type=int, default=4)
+    parser.add_argument('--x_min', type=int, default=-1)
+    parser.add_argument('--x_max', type=int, default=1)
+    parser.add_argument('--y_min', type=int, default=-1)
+    parser.add_argument('--y_max', type=int, default=1)
     parser.add_argument('--z_min', type=int, default=0)
-    parser.add_argument('--z_max', type=int, default=8)
+    parser.add_argument('--z_max', type=int, default=3)
     parser.add_argument('--n_blocks', type=int, default=8)
     args = parser.parse_args()
     

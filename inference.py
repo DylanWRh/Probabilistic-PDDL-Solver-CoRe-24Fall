@@ -14,7 +14,7 @@ def main():
     parser.add_argument('--hidden_dim', type=int, default=128)
     parser.add_argument('--depth', type=int, default=6)
     parser.add_argument('--checkpoint', type=str, 
-                        default='checkpoints/sgn-20241208-022616/model_010.pth')
+                        default='checkpoints/sgn-20241208-051217/model_010.pth')
     
     # Data parameters
     parser.add_argument('--data', type=str, default='./data/8blocks-500_test.npz')
@@ -33,17 +33,19 @@ def main():
     labels1 = labels1.view(ds.n_blocks, -1).cpu().numpy()
     labels2 = labels2.view(ds.n_blocks, -1).cpu().numpy()
     with torch.no_grad():
-        logits1 = model(coords1)
-        logits2 = model(coords2)
-    probs1 = torch.sigmoid(logits1)
-    probs2 = torch.sigmoid(logits2)
+        probs1 = model(coords1)
+        probs2 = model(coords2)
     probs1 = probs1.view(ds.n_blocks, -1).cpu().numpy()
     probs2 = probs2.view(ds.n_blocks, -1).cpu().numpy()
         
     bsenv = BlockStackingEnv(ds.n_blocks)
     bsplanner = BlockStackingPlanner(bsenv, probs1, probs2)
     
-    bsplanner.run()
+    
+    print(labels1)
+    print(probs1.round())
+    
+    # bsplanner.run()
     
 
 if __name__ == '__main__':
