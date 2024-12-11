@@ -229,7 +229,7 @@ class BlockStackingEnv:
             objs_on_block = set(objs_on_block) - used_blocks            
             if not objs_on_block:
                 continue
-            obj_on_block = objs_on_block.pop()
+            obj_on_block = objs_on_block.pop(-1)
             
             block2col[obj_on_block] = block2col[block]
             list_state[block2col[block]].append(obj_on_block)
