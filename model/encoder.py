@@ -1,4 +1,4 @@
-from .mlp import MLP
+from .mlp import NaiveMLP, PosEmbdMLP
 
-ObjectEncoder = MLP
-PredicateEncoder = MLP
+ObjectEncoder = PosEmbdMLP
+PredicateEncoder = NaiveMLP
