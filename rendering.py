@@ -72,5 +72,13 @@ if __name__ == '__main__':
     
     render_coords(env.get_coords_3d().T)
     
+    print(env.put_on_table(8))
+    
+    render_coords(env.get_coords_3d().T)
+    
+    print(env.put_A_on_B(6, 8))
+    
+    render_coords(env.get_coords_3d().T)
+    
     
     plt.show()
