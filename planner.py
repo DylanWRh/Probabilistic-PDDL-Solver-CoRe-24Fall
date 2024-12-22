@@ -1,6 +1,8 @@
 import numpy as np
 from tqdm import tqdm
 from environment import BlockStackingEnv
+import heapq
+
 
 class BlockStackingPlanner:
     def __init__(self, env: BlockStackingEnv, init_state, goal_state):
@@ -48,83 +50,80 @@ class BlockStackingPlanner:
             return self.env.put_A_on_B(action[1], action[2], judge_only=True)
         assert False, f'Unknown action: {action}'
     
-    def run(self, max_iter=10000, bfs_width=5):
-        # TODO: Currently only supports binary states with BFS strategy
-        self.cur_state = np.clip(self.cur_state, 0, 1).round()
-        self.goal_state = np.clip(self.goal_state, 0, 1).round()
-        
-        queue = [(self.cur_state.copy(), 0, [])]
-        total_steps = 0
-        
-        results = None
-        
-        for i in tqdm(range(max_iter)): 
-            if not queue:
-                break
-
-            prev_state, prev_depth, prev_actions = queue.pop(0)
-            if self.goal_reached(prev_state):
-                results = (prev_state, prev_depth, prev_actions)
-                break
-            
-            if total_steps < max_iter:
-                actions = self.get_all_actions()
-                
-                self.env.set_vector_state(prev_state.copy())
-                applicable_actions = []
-                for action in actions:
-                    if self.action_applicable(action):
-                        applicable_actions.append(action)
-                
-                action_score_pairs = []
-                for action in applicable_actions:
-                    self.env.set_vector_state(prev_state.copy())
-                    self.env.execute_action(action)
-                    new_state = self.env.vector_state
-                    new_diff = self.goal_diff(new_state)
-                    action_score_pairs.append((action, new_diff))
-                
-                action_score_pairs = sorted(action_score_pairs, key=lambda x: x[1])
-                for action, _ in action_score_pairs[:bfs_width]:
-                    self.env.set_vector_state(prev_state.copy())
-                    self.env.execute_action(action)
-                    new_state = self.env.vector_state
-                    new_depth = prev_depth + 1
-                    new_actions = prev_actions + [action]
-                    queue.append((new_state.copy(), new_depth, new_actions))
-                    total_steps += 1
-                
-        if results:
-            final_state, depth, actions = results
-            self.env.set_vector_state(self.cur_state)
-            for action in actions:
-                self.env.execute_action(action)
-            self.cur_state = final_state
-            
-            print(f'Goal reached in {depth} steps')
-            # print(f'Final state: \n{self.env.image_state}')
-            # print(f'Goal state: \n{self.goal_state}')
-            # print(f'Goal reached: {self.goal_reached()}')
-            # print(f'Goal diff: {self.goal_diff()}')
-            return actions
-        else:
-            print('Goal not reached')
-            return None
-        
-
-if __name__ == '__main__':
-    # env = BlockStackingEnv(4)
-    # init_state = np.zeros(env.num_blocks)
-    # goal_state = np.zeros(env.num_blocks)
-    # goal_state[0] = 1
-    # planner = BlockStackingPlanner(env, init_state, goal_state)
-    # print(planner.get_all_actions())
-    # print(planner.goal_diff())
-    # print(planner.goal_reached())
-    # print(planner.action_applicable(('Put on table', 1)))
-    # print(planner.action_applicable(('Put on', 1, 2)))
-    # print(planner.action_applicable(('Put on', 1, 1)))
+    def run_straight(self, max_iter=100):
+        pass
     
+    def run(self, max_iter=100, method='straight'):
+        
+        if method == 'straight':
+            return self.run_straight(max_iter)
+        else:
+            assert False, f'Unknown method: {method}'
+        
+        # # TODO: Currently only supports binary states with BFS strategy
+        # self.cur_state = np.clip(self.cur_state, 0, 1).round()
+        # self.goal_state = np.clip(self.goal_state, 0, 1).round()
+        
+        # queue = [(self.cur_state.copy(), 0, [])]
+        # total_steps = 0
+        
+        # results = None
+        
+        # for i in tqdm(range(max_iter)): 
+        #     if not queue:
+        #         break
+
+        #     prev_state, prev_depth, prev_actions = queue.pop(0)
+        #     if self.goal_reached(prev_state):
+        #         results = (prev_state, prev_depth, prev_actions)
+        #         break
+            
+        #     if total_steps < max_iter:
+        #         actions = self.get_all_actions()
+                
+        #         self.env.set_vector_state(prev_state.copy())
+        #         applicable_actions = []
+        #         for action in actions:
+        #             if self.action_applicable(action):
+        #                 applicable_actions.append(action)
+                
+        #         action_score_pairs = []
+        #         for action in applicable_actions:
+        #             self.env.set_vector_state(prev_state.copy())
+        #             self.env.execute_action(action)
+        #             new_state = self.env.vector_state
+        #             new_diff = self.goal_diff(new_state)
+        #             action_score_pairs.append((action, new_diff))
+                
+        #         action_score_pairs = sorted(action_score_pairs, key=lambda x: x[1])
+        #         for action, _ in action_score_pairs[:bfs_width]:
+        #             self.env.set_vector_state(prev_state.copy())
+        #             self.env.execute_action(action)
+        #             new_state = self.env.vector_state
+        #             new_depth = prev_depth + 1
+        #             new_actions = prev_actions + [action]
+        #             queue.append((new_state.copy(), new_depth, new_actions))
+        #             total_steps += 1
+                
+        # if results:
+        #     final_state, depth, actions = results
+        #     self.env.set_vector_state(self.cur_state)
+        #     for action in actions:
+        #         self.env.execute_action(action)
+        #     self.cur_state = final_state
+            
+        #     print(f'Goal reached in {depth} steps')
+        #     # print(f'Final state: \n{self.env.image_state}')
+        #     # print(f'Goal state: \n{self.goal_state}')
+        #     # print(f'Goal reached: {self.goal_reached()}')
+        #     # print(f'Goal diff: {self.goal_diff()}')
+        #     return actions
+        # else:
+        #     print('Goal not reached')
+        #     return None
+        
+
+if __name__ == '__main__':   
     env = BlockStackingEnv(8)
     
     init_image = np.array([
@@ -138,7 +137,7 @@ if __name__ == '__main__':
         [8, 0, 4, 0, 0, 0, 0, 0],
         [1, 2, 3, 5, 6, 7, 0, 0],
     ])
-    init_state = env.image_to_vector(init_image)
+    init_state = env.image2vector(init_image)
     
     mid_image = np.array([  
         [0, 0, 0, 0, 0, 0, 0, 0],
@@ -151,7 +150,7 @@ if __name__ == '__main__':
         [0, 0, 0, 0, 0, 0, 0, 0],
         [1, 2, 3, 4, 5, 6, 7, 8],
     ])
-    mid_state = env.image_to_vector(mid_image)
+    mid_state = env.image2vector(mid_image)
     
     target_image = np.array([
         [0, 0, 0, 0, 0, 0, 0, 0],
@@ -164,7 +163,7 @@ if __name__ == '__main__':
         [7, 5, 3, 0, 0, 0, 0, 0],
         [6, 4, 1, 0, 0, 0, 0, 0],
     ])
-    target_state = env.image_to_vector(target_image)
+    target_state = env.image2vector(target_image)
     
     env.set_image_state(init_image)
     planner = BlockStackingPlanner(env, init_state, mid_state)

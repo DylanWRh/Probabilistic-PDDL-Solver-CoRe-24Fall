@@ -209,6 +209,8 @@ class BlockStackingEnv:
             list_state: list representation of the blocks
         '''
         N = self.num_blocks
+        
+        vector_state = np.round(vector_state).astype(int)
         list_state = [[] for _ in range(N)]
         
         block2col = dict()
@@ -239,7 +241,7 @@ class BlockStackingEnv:
         return list_state
     
     def vector2image(self, vector_state: np.ndarray) -> np.ndarray:
-        image_state = self.list2image(self.vector2list(vector_state))
+        image_state = self.list2image(self.vector2list(np.round(vector_state).astype(int)))
         return image_state
     
     def image2vector(self, image_state: np.ndarray) -> np.ndarray:
@@ -382,6 +384,33 @@ class BlockStackingEnv:
             return self.put_A_on_B(action[1], action[2])
         else:
             assert False, f'Unknown action: {action}'
+    
+    def execute_action_prob(self, action):
+        new_vec = np.zeros_like(self.vector_state, dtype=float)
+        if action[0] == 'Put on table':
+            obj = action[1] - 1
+            exec_prob = self.vector_state[obj, -2] * (1 - self.vector_state[obj, -1])
+            
+            # ontable
+            new_vec[:, -1] = self.vector_state[:, -1]
+            new_vec[obj, -1] += exec_prob
+            
+            # clear
+            new_vec[obj, -2] = self.vector_state[obj, -2]
+            for other in range(self.num_blocks):
+                if other == obj:
+                    continue
+                new_vec[other, -2] = self.vector_state[other, -2] + \
+                    self.vector_state[obj, other] * exec_prob
+            
+            # on
+            new_vec[:, :-2] = self.vector_state[:, :-2]
+            new_vec[obj, :-2] *= (1 - exec_prob)
+            self.set_vector_state(new_vec)
+            return
+        elif action[0] == 'Put on':
+            pass
+            
 
 
 if __name__ == '__main__':
@@ -507,6 +536,18 @@ if __name__ == '__main__':
     
     print('\n----------------- Test Execute action True case 3 -----------------')
     print(f"Try to execute action ['Put on', 8, 2]: {env.execute_action(['Put on', 8, 2])}")
+    print(env)
+    print(env.get_language_state())
+    
+    print('\n----------------- Test Execute action with Probability case 1 -----------------')
+    print(f"Moving 5 on table")
+    env.execute_action_prob(['Put on table', 5])
+    print(env)
+    print(env.get_language_state())
+    
+    print('\n----------------- Test Execute action with Probability case 2 -----------------')
+    print(f"Moving 4 on table")
+    env.execute_action_prob(['Put on table', 4])
     print(env)
     print(env.get_language_state())
     
