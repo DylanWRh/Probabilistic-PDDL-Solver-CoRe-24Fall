@@ -409,8 +409,33 @@ class BlockStackingEnv:
             self.set_vector_state(new_vec)
             return
         elif action[0] == 'Put on':
-            pass
+            obj_A = action[1] - 1
+            obj_B = action[2] - 1
             
+            # not A on B, A clear, B clear
+            exec_prob = (1 - self.vector_state[obj_A, obj_B]) * \
+                self.vector_state[obj_A, -2] * self.vector_state[obj_B, -2]
+            
+            # ontable
+            new_vec[:, -1] = self.vector_state[:, -1]
+            new_vec[obj_A, -1] *= (1 - exec_prob)
+            
+            # clear
+            new_vec[:, -2] = self.vector_state[:, -2]
+            for other in range(self.num_blocks):
+                if other in [obj_A, obj_B]:
+                    continue
+                new_vec[other, -2] = self.vector_state[other, -2] + \
+                    self.vector_state[obj_A, other] * exec_prob
+            new_vec[obj_B, -2] = self.vector_state[obj_B, -2] * (1 - exec_prob)
+            
+            # on
+            new_vec[:, :-2] = self.vector_state[:, :-2]
+            new_vec[obj_A, :-2] *= (1 - exec_prob)
+            new_vec[obj_A, obj_B] /= (1 - exec_prob + 1e-6)
+            new_vec[obj_A, obj_B] += exec_prob
+            self.set_vector_state(new_vec)
+            return
 
 
 if __name__ == '__main__':
@@ -548,6 +573,24 @@ if __name__ == '__main__':
     print('\n----------------- Test Execute action with Probability case 2 -----------------')
     print(f"Moving 4 on table")
     env.execute_action_prob(['Put on table', 4])
+    print(env)
+    print(env.get_language_state())
+    
+    print('\n----------------- Test Execute action with Probability case 3 -----------------')
+    print(f"Put 4 on 8")
+    env.execute_action_prob(['Put on', 4, 8])
+    print(env)
+    print(env.get_language_state())
+    
+    print('\n----------------- Test Execute action with Probability case 4 -----------------')
+    print(f"Put 4 on 6")
+    env.execute_action_prob(['Put on', 4, 6])
+    print(env)
+    print(env.get_language_state())
+    
+    print('\n----------------- Test Execute action with Probability case 5 -----------------')
+    print(f"Put 7 on 5")
+    env.execute_action_prob(['Put on', 7, 5])
     print(env)
     print(env.get_language_state())
     

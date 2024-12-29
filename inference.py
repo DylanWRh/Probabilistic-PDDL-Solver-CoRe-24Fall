@@ -14,10 +14,10 @@ def main():
     parser.add_argument('--hidden_dim', type=int, default=128)
     parser.add_argument('--depth', type=int, default=6)
     parser.add_argument('--checkpoint', type=str, 
-                        default='checkpoints/sgn-20241208-051217/model_010.pth')
+                        default='checkpoints/model_010.pth')
     
     # Data parameters
-    parser.add_argument('--data', type=str, default='./data/8blocks-500_test.npz')
+    parser.add_argument('--data', type=str, default='./data/states/8blocks-500_test.npz')
     parser.add_argument('--batch_size', type=int, default=32)
     
     args = parser.parse_args()

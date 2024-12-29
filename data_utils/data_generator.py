@@ -76,7 +76,7 @@ def gen_data(args):
 if __name__ == '__main__':
     
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_path', type=str, default='../data')
+    parser.add_argument('--data_path', type=str, default='../data/states')
     parser.add_argument('--n_samples_train', type=int, default=3000)
     parser.add_argument('--n_samples_val', type=int, default=500)
     parser.add_argument('--n_samples_test', type=int, default=500)
