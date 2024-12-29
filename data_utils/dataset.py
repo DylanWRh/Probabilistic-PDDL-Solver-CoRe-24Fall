@@ -25,7 +25,7 @@ class BlockStackingDataset(Dataset):
 class BlockStackingTaskDataset:
     def __init__(self, root):
         super().__init__()
-        data = np.load(root)
+        data = np.load(root, allow_pickle=True)
         self.n_blocks = data['n_blocks']
         self.tasks = data['tasks']
     

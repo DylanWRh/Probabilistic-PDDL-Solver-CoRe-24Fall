@@ -22,9 +22,9 @@ def gen_task_basic(n_blocks, n_samples, data_name):
     env = BlockStackingEnv(n_blocks)
     all_tasks = []
     for _ in tqdm(range(n_samples)):
-        task = {'init':{}, 'target':{}}
+        task = {'init':{}, 'goal':{}}
         
-        for stage in ['init', 'target']:
+        for stage in ['init', 'goal']:
             list_state = [[i] for i in range(1, n_blocks+1)]
             num_step = random.randint(1, 100)
             for t in range(num_step):
