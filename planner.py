@@ -32,11 +32,12 @@ def get_applicability(state, action):
     return get_atom_prob(state, ['Clear', block_a]) * get_atom_prob(state, ['Clear', block_b])
 
 
-def get_effective_set(action):
+def get_effective_set(state, action):
     block_a, block_b = action[1], action[2]
+    # removed = [['clear', idx] for idx in range(1, len(state + 1)) if idx != block_a and idx != block_b]
     return (
         [
-            ['on', block_a, block_b]
+            ['on', block_a, block_b],
         ],
         [
             ['clear', block_b],
@@ -46,10 +47,14 @@ def get_effective_set(action):
 
 def apply_action(state, action):
     new_state = state.copy()
-    positive_set, negative_set = get_effective_set(action)
+    positive_set, negative_set = get_effective_set(state, action)
     applicability = get_applicability(state, action)
     for positive_atom in positive_set:
         atom_idx = atom2idx(positive_atom)
+        # if positive_atom[0] == 'clear':
+        #     new_state[atom_idx] = np.clip(applicability * get_atom_prob(state, ['on', action[1], positive_atom[1]]) + (1 - applicability) * state[atom_idx], 0, 1)
+        # else:
+        #     new_state[atom_idx] = np.clip(applicability + (1 - applicability) * state[atom_idx], 0, 1)
         new_state[atom_idx] = np.clip(applicability + (1 - applicability) * state[atom_idx], 0, 1)
     for negative_atom in negative_set:
         atom_idx = atom2idx(negative_atom)
@@ -106,18 +111,27 @@ class ContinousPlanner:
 CP = ContinousPlanner
 
 class TaskManager:
-    def __init__(self, n_blocks, init_vec, goal_vec, sgn):
+    def __init__(self, n_blocks, sgn=None, init_vec=None, goal_vec=None):
         self.n_blocks = n_blocks
-        self.init_vec = init_vec
-        self.goal_vec = goal_vec
-        self.planner = CP(n_blocks)
+        self.planner = CP(n_blocks=n_blocks, max_len=10) # for 2 stack setting
+        # self.planner = CP(n_blocks=n_blocks, max_len=100) # for basic setting
         self.env = BlockStackingEnv(n_blocks)
-        self.env.set_vector_state(init_vec)
-        self.planner.set_goal_(goal_vec)
+        self.sgn = sgn
+        self.set_task_(init_vec, goal_vec)
+
+    def set_sgn_(self, sgn):
         self.sgn = sgn
 
+    def set_task_(self, init_vec, goal_vec):
+        self.init_vec = init_vec
+        self.goal_vec = goal_vec
+        self.env.set_vector_state(init_vec)
+        self.planner.set_goal_(goal_vec)
+
     def run_planner(self, verbose=False, max_iter=50):
+        assert self.goal_vec is not None and self.init_vec is not None, "Set the task before run planner"
         iter_count = 0
+        if verbose: print('init:\n', self.env.image_state, 'goal:\n', self.env.vector2image(self.goal_vec))
         while not np.allclose(self.env.vector_state, self.goal_vec):
             iter_count = iter_count + 1
             if iter_count >= max_iter:
@@ -126,8 +140,9 @@ class TaskManager:
             gt_block_coord = self.env.get_coords_3d()
             with torch.no_grad():
                 pred_vector = self.sgn(torch.from_numpy(gt_block_coord.flatten()).to(torch.float)).numpy().reshape(self.n_blocks, -1)
-            if verbose: print('predicted vector state\n', pred_vector.round(2))
-            if verbose: print('gt vector state\n', self.env.vector_state)
+            # pred_vector = self.env.vector_state
+            # if verbose: print('predicted vector state\n', pred_vector.round(2))
+            # if verbose: print('gt vector state\n', self.env.vector_state)
             action = self.planner(pred_vector)
             if not self.env.execute_action(action):
                 if verbose: print('invalid action: {}'.format(action))
@@ -135,7 +150,7 @@ class TaskManager:
                 return 0
             if verbose: print('executed action {}'.format(action))
             if verbose: print(self.env.image_state)
-            if verbose: print(self.env.vector_state)
+            if verbose: print(self.env.vector2image(self.goal_vec))
         if verbose: print('task succeed')
         return 1
 
@@ -169,6 +184,6 @@ if __name__ == '__main__':
     )
     env = BlockStackingEnv(8)
     sgn = BlockStackingSGN(8, 128, 2)
-    sgn.load_state_dict(torch.load('D:\\CS\\CoRe\\ours\\Probabilistic-PDDL-Solver-CoRe-24Fall\\checkpoints\\sgn-20250103-130556\\model_100.pth'))
+    sgn.load_state_dict(torch.load('D:\\CS\\CoRe\\ours\\new\\Probabilistic-PDDL-Solver-CoRe-24Fall\\checkpoints\\sgn-20250108-213718\model_030.pth'))
     manager = TaskManager(8, env.image2vector(init_img), env.image2vector(goal_img), sgn)
     manager.run_planner(verbose=True)
