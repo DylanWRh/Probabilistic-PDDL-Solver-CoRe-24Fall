@@ -17,7 +17,7 @@ class BlockStackingSGN(nn.Module):
         self.depth = depth
 
         self.object_encoders = nn.ModuleList(
-            [ObjectEncoder(hidden_dim // n_blocks, hidden_dim, hidden_dim, depth) for _ in range(self.n_blocks)]
+            [ObjectEncoder(3 * n_blocks, hidden_dim, hidden_dim, depth) for _ in range(self.n_blocks)]
         )
         self.clear_encoder = PredicateEncoder(hidden_dim, hidden_dim, 1, depth, use_sigmoid=True)
         self.ontable_encoder = PredicateEncoder(hidden_dim, hidden_dim, 1, depth, use_sigmoid=True)
