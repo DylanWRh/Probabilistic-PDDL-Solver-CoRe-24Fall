@@ -34,6 +34,26 @@ class BlockStackingTaskDataset:
     
     def __getitem__(self, idx):
         return self.tasks[idx]
+    
+
+class BlockStackingDemonstration(Dataset):
+    def __init__(self, root, n_samples):
+        super().__init__()
+        data = np.load(root, allow_pickle=True)
+        self.n_blocks = data['n_blocks']
+        tasks = data['tasks']
+        self.tasks = tasks[np.random.choice(len(tasks), n_samples, False)]
+        self.n_steps = data['n_steps']
+
+
+    def __len__(self):
+        return len(self.tasks)
+    
+    def __getitem__(self, index):
+        data = [self.tasks[index][key]['data'] for key in ['init'] + ['step_{}'.format(i + 1) for i in range(self.n_steps)]]
+        # image = [self.tasks[index][key]['image'] for key in ['init'] + ['step_{}'.format(i + 1) for i in range(self.n_steps)]]
+        label = [self.tasks[index][key]['label'] for key in ['init'] + ['step_{}'.format(i + 1) for i in range(self.n_steps)]]
+        return torch.from_numpy(np.stack(data)).flatten(-2, -1).float(), torch.from_numpy(np.stack(label)).flatten(-2, -1).float()
 
 
 if __name__ == '__main__':
