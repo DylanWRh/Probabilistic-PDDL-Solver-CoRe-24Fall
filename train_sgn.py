@@ -7,6 +7,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 import argparse
 import datetime
+from tqdm.auto import tqdm
 
 
 def train_sgn(
@@ -38,13 +39,25 @@ def train_sgn(
     return model
 
 
+def fit_sgn(model, ds, device):
+    lr = 1e-3
+    n_epoch = 50
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-5)
+    criterion = torch.nn.MSELoss()
+    p_bar = tqdm(range(n_epoch))
+    for epoch in p_bar:
+        loss = train_one_epoch(model, criterion, ds, optimizer, device, epoch, None, False)
+        p_bar.set_description('current_loss: {}'.format(loss))
+    return model
+
+
 def main():
 
     parser = argparse.ArgumentParser()
 
     # Model parameters
     parser.add_argument('--hidden_dim', type=int, default=128)
-    parser.add_argument('--depth', type=int, default=6)
+    parser.add_argument('--depth', type=int, default=2)
     parser.add_argument('--experience_name', type=str,
                         default='sgn_{}'
                         .format(
@@ -54,14 +67,14 @@ def main():
 
     # Data parameters
     parser.add_argument('--train_data', type=str,
-                        default='./data/8blocks-3000_train.npz')
+                        default='./data/states/8blocks-3000_train_3d.npz')
     parser.add_argument('--val_data', type=str,
-                        default='./data/8blocks-500_val.npz')
+                        default='./data/states/8blocks-500_val.npz')
     parser.add_argument('--batch_size', type=int, default=32)
 
     # Training parameters
     parser.add_argument('--epochs', type=int, default=100)
-    parser.add_argument('--val_interval', type=int, default=10)
+    parser.add_argument('--val_interval', type=int, default=1)
     parser.add_argument('--save_interval', type=int, default=10)
     parser.add_argument('--save_dir', type=str, default='./checkpoints')
     parser.add_argument('--lr', type=float, default=1e-3)
