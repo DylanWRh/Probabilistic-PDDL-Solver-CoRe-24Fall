@@ -76,7 +76,7 @@ def evaluate_state(curr, goal):
 
 
 class ContinousPlanner:
-    def __init__(self, goal=None, n_blocks=8, max_len=50, eps=1e-3):
+    def __init__(self, goal=None, n_blocks=8, max_len=5000, eps=1e-3):
         self.goal = goal
         self.n_blocks = n_blocks
         self.action_list = list_action(n_blocks)
@@ -113,8 +113,7 @@ CP = ContinousPlanner
 class TaskManager:
     def __init__(self, n_blocks, sgn=None, init_vec=None, goal_vec=None):
         self.n_blocks = n_blocks
-        self.planner = CP(n_blocks=n_blocks, max_len=10) # for 2 stack setting
-        # self.planner = CP(n_blocks=n_blocks, max_len=100) # for basic setting
+        self.planner = CP(n_blocks=n_blocks, max_len=50000)
         self.env = BlockStackingEnv(n_blocks)
         self.sgn = sgn
         self.set_task_(init_vec, goal_vec)
@@ -140,9 +139,10 @@ class TaskManager:
             gt_block_coord = self.env.get_coords_3d()
             with torch.no_grad():
                 pred_vector = self.sgn(torch.from_numpy(gt_block_coord.flatten()).to(torch.float)).numpy().reshape(self.n_blocks, -1)
+            # pred_vector = pred_vector.round()
             # pred_vector = self.env.vector_state
-            # if verbose: print('predicted vector state\n', pred_vector.round(2))
-            # if verbose: print('gt vector state\n', self.env.vector_state)
+            if verbose: print('predicted vector state\n', pred_vector.round(2))
+            if verbose: print('gt vector state\n', self.env.vector_state)
             action = self.planner(pred_vector)
             if not self.env.execute_action(action):
                 if verbose: print('invalid action: {}'.format(action))
@@ -184,6 +184,6 @@ if __name__ == '__main__':
     )
     env = BlockStackingEnv(8)
     sgn = BlockStackingSGN(8, 128, 2)
-    sgn.load_state_dict(torch.load('D:\\CS\\CoRe\\ours\\new\\Probabilistic-PDDL-Solver-CoRe-24Fall\\checkpoints\\sgn-20250108-213718\model_030.pth'))
+    sgn.load_state_dict(torch.load('./checkpoints/sgn/model_100.pth'))
     manager = TaskManager(8, env.image2vector(init_img), env.image2vector(goal_img), sgn)
     manager.run_planner(verbose=True)

@@ -1,6 +1,6 @@
 from engine_sgn import train_one_epoch, evaluate
 from model.sgn import BlockStackingSGN
-from data_utils.dataset import BlockStackingDataset
+from data_utils.dataset import BlockStackingDataset, BlockStackingDemonstration
 
 import os
 import torch
@@ -41,13 +41,13 @@ def train_sgn(
 
 def fit_sgn(model, ds, device):
     lr = 1e-3
-    n_epoch = 50
+    n_epoch = 25
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-5)
     criterion = torch.nn.MSELoss()
-    p_bar = tqdm(range(n_epoch))
-    for epoch in p_bar:
+    # p_bar = tqdm(range(n_epoch))
+    for epoch in range(n_epoch):
         loss = train_one_epoch(model, criterion, ds, optimizer, device, epoch, None, False)
-        p_bar.set_description('current_loss: {}'.format(loss))
+        # p_bar.set_description('current_loss: {}'.format(loss))
     return model
 
 
@@ -67,7 +67,7 @@ def main():
 
     # Data parameters
     parser.add_argument('--train_data', type=str,
-                        default='./data/states/8blocks-3000_train_3d.npz')
+                        default='./data/states/8blocks-3000_train.npz')
     parser.add_argument('--val_data', type=str,
                         default='./data/states/8blocks-500_val.npz')
     parser.add_argument('--batch_size', type=int, default=32)
@@ -81,6 +81,8 @@ def main():
     args = parser.parse_args()
 
     ds_train = BlockStackingDataset(args.train_data)
+    # ds_val = BlockStackingDataset(args.val_data)
+    # ds_train = BlockStackingDemonstration(args.train_data, 3000)
     ds_val = BlockStackingDataset(args.val_data)
     train_loader = torch.utils.data.DataLoader(
         ds_train, batch_size=args.batch_size, shuffle=True)
