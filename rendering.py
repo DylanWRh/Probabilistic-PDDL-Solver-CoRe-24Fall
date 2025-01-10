@@ -40,45 +40,19 @@ def render_coords(coords: np.ndarray, img_path='./rendered/{}.png'.format(np.ran
     
     ax.voxels(grid, facecolors=colorgrid, edgecolor='k')
 
-    # plt.savefig(img_path)
+    plt.savefig(img_path)
 
 if __name__ == '__main__':
-    with open('data/8blocks-500_test.npz', 'rb') as f:
-        data = np.load(f)
-        coords = data['coords']
-        labels = data['labels']
-    
-    np.random.seed(42)
-    t = np.random.randint(coords.shape[0])
-    coords = coords[t]
-    labels = labels[t]
-    
-    from environment import BlockStackingEnv
-    env = BlockStackingEnv(num_blocks=8)
-    env.set_vector_state(labels)
-    
-    coords_unique = np.unique(coords[..., :2], axis=0)
-    
-    while coords_unique.shape[0] < 8:
-        new_coord = np.random.randint(-3, 4, size=(1, 2))
-        if not np.any(np.all(coords_unique == new_coord, axis=0)):
-            coords_unique = np.vstack((coords_unique, new_coord))
-    
-    env.set_coords(coords_unique)
-        
-    render_coords(env.get_coords_3d().T)
-    
-    print(env.put_A_on_B(3, 5))
-    
-    render_coords(env.get_coords_3d().T)
-    
-    print(env.put_on_table(8))
-    
-    render_coords(env.get_coords_3d().T)
-    
-    print(env.put_A_on_B(6, 8))
-    
-    render_coords(env.get_coords_3d().T)
-    
-    
-    plt.show()
+    render_coords(
+        np.asarray([
+            [1, 2, 0],
+            [3, 2, 0],
+            [1, 2, 1],
+            [4, 7, 0],
+            [4, 5, 0],
+            [4, 5, 1],
+            [3, 6, 0],
+            [0, 3, 0]
+        ]).T,
+        './rendered/simple_example.png'
+    )

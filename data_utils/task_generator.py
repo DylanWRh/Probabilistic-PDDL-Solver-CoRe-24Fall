@@ -1,42 +1,27 @@
+import numpy as np
+import random
+from tqdm import tqdm
 import sys
 sys.path.append('..')
-
 from environment import BlockStackingEnv
-from tqdm import tqdm
 
-import random
-import numpy as np
 
 def gen_task_basic(n_blocks, n_samples, data_name):
     x_min, x_max = -3, 3
     y_min, y_max = -3, 3
     xx, yy = np.meshgrid(
-        np.arange(x_min, x_max+1),
-        np.arange(y_min, y_max+1),
+        np.arange(x_min, x_max + 1),
+        np.arange(y_min, y_max + 1),
     )
     x = xx.flatten()
     y = yy.flatten()
     grid = np.stack([x, y], axis=1)
-    # grid = np.array(
-    #     [
-    #         [0, 0],
-    #         [1, 0],
-    #         [2, 0],
-    #         [3, 0],
-    #         [4, 0],
-    #         [5, 0],
-    #         [6, 0],
-    #         [7, 0]
-    #     ]
-    # )
     n = len(grid)
-    
+
     env = BlockStackingEnv(n_blocks)
     all_tasks = []
     for _ in tqdm(range(n_samples)):
-        task = {'init':{}, 'goal':{}}
-        
-        # for stage in ['init', 'goal']:
+        task = {'init': {}, 'goal': {}}
         list_state = [[i] for i in range(1, n_blocks+1)]
         coords = np.random.choice(n, n_blocks, replace=False)
         block_coords = grid[coords]
@@ -46,22 +31,7 @@ def gen_task_basic(n_blocks, n_samples, data_name):
         label = env.vector_state
         image = env.image_state
         task['init'] = {'data': data, 'label': label, 'image': image}
-        num_step = random.randint(1, 15)
-        # for t in range(num_step):
-        #     i, j = np.random.choice(n_blocks, 2, replace=False)
-        #     if len(list_state[i]) and len(list_state[j]):
-        #         obj_i = list_state[i].pop(-1)
-        #         list_state[j].append(obj_i)
-        
-        # coords = np.random.choice(n, n_blocks, replace=False)
-        # block_coords = grid[coords]
-        # env.set_coords(block_coords)
-        # env.set_list_state(list_state)
-        # data = env.get_coords_3d()
-        # label = env.vector_state
-        # image = env.image_state
-        # task['init'] = {'data': data, 'label': label, 'image': image}
-        # num_step = random.randint(1, 100)
+        num_step = np.random.randint(10)
         for t in range(num_step):
             i, j = np.random.choice(n_blocks, 2, replace=False)
             if len(list_state[i]) and len(list_state[j]):
@@ -83,20 +53,18 @@ def gen_task_demonstration(n_blocks, n_samples, n_steps, data_name):
     x_min, x_max = -3, 3
     y_min, y_max = -3, 3
     xx, yy = np.meshgrid(
-        np.arange(x_min, x_max+1),
-        np.arange(y_min, y_max+1),
+        np.arange(x_min, x_max + 1),
+        np.arange(y_min, y_max + 1),
     )
     x = xx.flatten()
     y = yy.flatten()
     grid = np.stack([x, y], axis=1)
     n = len(grid)
-    
+
     env = BlockStackingEnv(n_blocks)
     all_tasks = []
     for _ in tqdm(range(n_samples)):
-        task = {'init':{}}
-        
-        # for stage in ['init', 'goal']:
+        task = {'init': {}}
         list_state = [[i] for i in range(1, n_blocks+1)]
         coords = np.random.choice(n, n_blocks, replace=False)
         block_coords = grid[coords]
@@ -106,21 +74,6 @@ def gen_task_demonstration(n_blocks, n_samples, n_steps, data_name):
         label = env.vector_state
         image = env.image_state
         task['init'] = {'data': data, 'label': label, 'image': image}
-        # for t in range(num_step):
-        #     i, j = np.random.choice(n_blocks, 2, replace=False)
-        #     if len(list_state[i]) and len(list_state[j]):
-        #         obj_i = list_state[i].pop(-1)
-        #         list_state[j].append(obj_i)
-        
-        # coords = np.random.choice(n, n_blocks, replace=False)
-        # block_coords = grid[coords]
-        # env.set_coords(block_coords)
-        # env.set_list_state(list_state)
-        # data = env.get_coords_3d()
-        # label = env.vector_state
-        # image = env.image_state
-        # task['init'] = {'data': data, 'label': label, 'image': image}
-        # num_step = random.randint(1, 100)
         for t in range(n_steps):
             i, j = np.random.choice(n_blocks, 2, replace=False)
             while not (len(list_state[i]) and len(list_state[j])):
@@ -131,59 +84,11 @@ def gen_task_demonstration(n_blocks, n_samples, n_steps, data_name):
             data = env.get_coords_3d()
             label = env.vector_state
             image = env.image_state
-            task['step_{}'.format(t + 1)] = {'data': data, 'label': label, 'image': image}
+            task['step_{}'.format(t + 1)] = {'data': data,
+                                             'label': label, 'image': image}
         all_tasks.append(task)
     np.savez(data_name, n_blocks=n_blocks, tasks=all_tasks, n_steps=n_steps)
 
 
-def gen_task_hard(n_blocks, n_samples, data_name):
-    # x_min, x_max = -3, 3
-    # y_min, y_max = -3, 3
-    # xx, yy = np.meshgrid(
-    #     np.arange(x_min, x_max+1),
-    #     np.arange(y_min, y_max+1),
-    # )
-    # x = xx.flatten()
-    # y = yy.flatten()
-    # grid = np.stack([x, y], axis=1)
-    grid = np.array(
-        [
-            [0, 0],
-            [1, 0],
-            [2, 0],
-            [3, 0],
-            [4, 0],
-            [5, 0],
-            [6, 0],
-            [7, 0]
-        ]
-    )
-    n = len(grid)
-    
-    env = BlockStackingEnv(n_blocks)
-    all_tasks = []
-    for _ in tqdm(range(n_samples)):
-        task = {'init':{}, 'goal':{}}
-        
-        for stage in ['init', 'goal']:
-            list_state = [[i] for i in range(1, n_blocks+1)]
-            num_step = random.randint(1, 100)
-            for t in range(num_step):
-                i, j = np.random.choice(n_blocks, 2, replace=False)
-                if list_state[i]:
-                    obj_i = list_state[i].pop(-1)
-                    list_state[j].append(obj_i)
-            
-            coords = np.random.choice(n, n_blocks, replace=False)
-            block_coords = grid[coords]
-            env.set_coords(block_coords)
-            env.set_list_state(list_state)
-            data = env.get_coords_3d()
-            label = env.vector_state
-            task[stage] = {'data': data, 'label': label}
-        all_tasks.append(task)
-    np.savez(data_name, n_blocks=n_blocks, tasks=all_tasks)
-
-
 if __name__ == '__main__':
-    gen_task_demonstration(8, 3000, 5, '../data/tasks/8blocks-3000-demonstration-3d.npz')
+    gen_task_basic(8, 3000, '../data/tasks/8blocks-3000.npz')

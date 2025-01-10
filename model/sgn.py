@@ -49,10 +49,3 @@ class BlockStackingSGN(nn.Module):
 
         results = torch.cat(predicate_encodings, dim=-1)
         return results
-
-
-if __name__ == '__main__':
-    model = BlockStackingSGN(8, 64, 6)
-    x = torch.randn(32, 8 * 3)
-    y = model(x)
-    print(y.shape)
